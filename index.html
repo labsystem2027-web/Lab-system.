@@ -157,7 +157,7 @@
   <div id="lock-box">
     <div class="brand-icon"></div>
     <h3>Lab System Locked</h3>
-    <p>PIN darj karein</p>
+    <p>Enter PIN</p>
     <input type="password" id="lock-pin" maxlength="20" placeholder="••••••••">
     <button id="lock-btn" onclick="tryUnlock()">Unlock</button>
     <div id="lock-error"></div>
@@ -228,11 +228,11 @@ async function syncOrderToCloud(order){
       html: html,
       updatedAt: new Date().toISOString()
     });
-    showStorageBanner("warn", "☁ Report online sync ho gayi — patient MR number se dekh sakta hai.");
+    showStorageBanner("warn", "☁ Report synced online — patient can now view it by MR number.");
     setTimeout(()=> hideStorageBanner("warn"), 3500);
   }catch(e){
     console.error("Cloud sync failed:", e);
-    alert("⚠ Online sync fail hua (internet check karein). Report local system mein mehfooz hai, dobara try karne ke liye 'Sync Online' button dabayein.");
+    alert("⚠ Online sync failed (check your internet connection). The report is still safely saved locally — press 'Sync Online' to try again.");
   }
 }
 
@@ -271,7 +271,7 @@ async function checkAndCleanupOldReports(){
     }
     if(deletedTotal > 0){
       console.log(`Auto-cleanup: removed ${deletedTotal} oldest online reports to keep storage under the free-plan limit.`);
-      showStorageBanner("warn", `☁ Storage capacity ke qareeb thi — ${deletedTotal} sabse purani online reports auto-delete hui hain (local data mehfooz hai).`);
+      showStorageBanner("warn", `☁ Online storage was nearing capacity — ${deletedTotal} of the oldest online reports were auto-deleted (your local data is unaffected).`);
       setTimeout(()=> hideStorageBanner("warn"), 6000);
     }
   }catch(e){
@@ -616,11 +616,11 @@ async function persistOrders(){
     console.error("IndexedDB save failed, falling back to localStorage:", e);
     try{
       localStorage.setItem("lab-orders", JSON.stringify(state.orders));
-      showStorageBanner("warn", "⚠ Behtar storage available nahi thi, data localStorage mein save hua (limited space).");
+      showStorageBanner("warn", "⚠ Preferred storage wasn't available — data was saved to localStorage instead (limited space).");
     }catch(e2){
       console.error("localStorage save also failed:", e2);
-      showStorageBanner("err", "❌ Yeh record save NAHI ho saka — device ki storage bhar chuki hai. Foran purana data backup/export karein ya storage khali karein, warna yeh record kho jaye ga.");
-      alert("Zaroori: Yeh record save nahi ho saka kyunke device ki storage bhar chuki hai. Kirpya storage khali karein.");
+      showStorageBanner("err", "❌ This record could NOT be saved — the device's storage is full. Back up/export old data immediately or free up storage, otherwise this record will be lost.");
+      alert("Important: This record could not be saved because the device's storage is full. Please free up storage.");
     }
   }
   checkStorageHealth();
@@ -642,9 +642,9 @@ async function checkStorageHealth(){
       if(quota){
         const pct = (usage/quota)*100;
         if(pct >= 90){
-          showStorageBanner("err", `❌ Storage ${pct.toFixed(0)}% bhar chuki hai — foran data backup/export karein, warna nayi records save nahi ho paein gi.`);
+          showStorageBanner("err", `❌ Storage is ${pct.toFixed(0)}% full — back up/export data immediately, otherwise new records won't be able to save.`);
         } else if(pct >= 75){
-          showStorageBanner("warn", `⚠ Storage ${pct.toFixed(0)}% istemaal ho chuki hai. Jald backup lena behtar rahega.`);
+          showStorageBanner("warn", `⚠ Storage is ${pct.toFixed(0)}% used. It's a good idea to back up soon.`);
         }
       }
     }
@@ -699,7 +699,7 @@ function renderNewOrder(){
         <div class="field"><label>Time Out</label><input id="f-timeout" placeholder="04:30pm"></div>
       </div>
       <button class="btn btn-primary" id="submit-btn" onclick="createOrder()" disabled style="width:100%; justify-content:center;">Create Order</button>
-      <div class="hint" id="submit-hint">Naam aur kam az kam 1 test select karein.</div>
+      <div class="hint" id="submit-hint">Enter a name and select at least 1 test.</div>
     </div>
     <div class="card">
       <div class="panel-title display">Select Test(s)</div>
@@ -789,7 +789,7 @@ function renderResultsView(){
 
 function renderResultsPanel(){
   const order = getSelectedOrder();
-  if(!order) return `<div class="dashed">Koi order select nahi hai. History se koi record kholein.</div>`;
+  if(!order) return `<div class="dashed">No order selected. Open a record from History.</div>`;
   const sections = paramsForOrder(order);
   const allParams = sections.flatMap(s=>s.params);
   const anyEntered = allParams.some(p=> order.results[p.id]!==undefined && order.results[p.id]!=="") || (order.customParams||[]).some(cp=>cp.value && cp.value.trim());
@@ -842,7 +842,7 @@ function renderResultsPanel(){
     ${renderCustomParamsSection(order, locked)}
     ${!locked ? `<button class="btn btn-outline" style="margin-top:10px;" onclick="addCustomParam('${order.id}')">+ Add Custom Test</button>` : ''}
     <div id="actions-area" style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">${actionsHtml}</div>
-    <div id="hint-area">${(!anyEntered && order.status==='pending')?'<div class="hint">Kam az kam ek result enter karein Mark Completed karne se pehle. Jo test nahi hua wo khaali chhod sakte hain — report mein "—" print hoga.</div>':''}</div>
+    <div id="hint-area">${(!anyEntered && order.status==='pending')?'<div class="hint">Enter at least one result before marking as Completed. Tests not done can be left blank — the report will print "—" for those.</div>':''}</div>
   </div>`;
 }
 
@@ -986,7 +986,7 @@ function refreshPanelStatus(order){
       if(btn) btn.disabled = !anyEntered;
     }
     const hintArea = document.getElementById("hint-area");
-    if(hintArea) hintArea.innerHTML = (!anyEntered) ? '<div class="hint">Kam az kam ek result enter karein Mark Completed karne se pehle. Jo test nahi hua wo khaali chhod sakte hain — report mein "—" print hoga.</div>' : "";
+    if(hintArea) hintArea.innerHTML = (!anyEntered) ? '<div class="hint">Enter at least one result before marking as Completed. Tests not done can be left blank — the report will print "—" for those.</div>' : "";
   }
 }
 
@@ -1048,10 +1048,10 @@ function onHistorySearch(v){
 }
 
 function clearHistory(){
-  if(state.orders.length===0){ alert("History pehle se khali hai."); return; }
-  const sure1 = confirm(`Yaqeen hai? Ye ${state.orders.length} record${state.orders.length!==1?'s':''} hamesha ke liye delete ho jayenge. Ye wapas nahi ho sakta.`);
+  if(state.orders.length===0){ alert("History is already empty."); return; }
+  const sure1 = confirm(`Are you sure? These ${state.orders.length} record${state.orders.length!==1?'s':''} will be deleted permanently. This cannot be undone.`);
   if(!sure1) return;
-  const sure2 = confirm("Aakhri confirmation: Sara history data delete kar dein?");
+  const sure2 = confirm("Final confirmation: delete all history data?");
   if(!sure2) return;
   state.orders = [];
   state.selectedOrderId = null;
@@ -1073,7 +1073,7 @@ function renderHistory(){
     </div>
     <div class="search-wrap" style="max-width:280px; margin-bottom:12px;">
       <span class="search-icon">🔍</span>
-      <input id="history-search-box" placeholder="Naam ya MR.NO search karein" value="${esc(state.historySearch||'')}" oninput="onHistorySearch(this.value)">
+      <input id="history-search-box" placeholder="Search by name or MR.NO" value="${esc(state.historySearch||'')}" oninput="onHistorySearch(this.value)">
     </div>
     <div class="table-wrap">
       <table class="hist">
@@ -1342,7 +1342,7 @@ function tryUnlock(){
     document.getElementById("lock-screen").style.display = "none";
     errEl.textContent = "";
   } else {
-    errEl.textContent = "❌ Ghalat PIN, dobara koshish karein.";
+    errEl.textContent = "❌ Incorrect PIN, please try again.";
     input.value = "";
     input.focus();
   }
